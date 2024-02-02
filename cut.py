@@ -5,7 +5,13 @@ from pathlib import Path
 import argparse
 import numpy as np
 
-from utils import load_image, show_image, save_image
+from utils import (
+    load_image,
+    show_image,
+    save_image,
+    transform,
+    get_rand_num,
+)
 
 
 def get_args(to_upperse=True):
@@ -27,48 +33,14 @@ def get_args(to_upperse=True):
     return args
 
 
-def vflip(img):
-    return img[::-1, ...]
-
-
-def hflip(img):
-    return img[:, ::-1, :]
-
-
-def rotate(img):
-    temp = np.transpose(img, axes=(1, 0, 2))
-    temp = hflip(temp)
-    return temp
-
-
-def transform(img):
-    # if random.random() < 0.5:
-    #     img = A.rotate(img, angle=-90)
-    transformer = A.Compose(
-        [
-            # A.HorizontalFlip(p=0.5),
-            # A.VerticalFlip(p=0.5),
-            A.Rotate(limit=(-90, -90), rotate_method="ellipse", p=0.5),
-            # A.Rotate(limit=(-90, -90), p=1),
-        ]
-    )
-    return transformer(image=img)["image"]
-show_image(img)
-show_image(rotate(img))
-
-show_image(np.transpose(img, axes=(1, 0, 2)))
-
-def get_rand_num():
-    return random.randint(10 ** 9, (10 ** 10) - 1)
-
-
 def main():
     args = get_args()
 
-    img = load_image("/Users/jongbeomkim/Desktop/workspace/PGGAN/generated_images/512×512_2.jpg")
+    img = load_image("/Users/jongbeomkim/Desktop/workspace/Gatys-et-al.-2016/examples/content_images/content_image1.jpg")
+    img.shape
 
-    n_row_splits = 4
-    n_col_splits = 3
+    n_row_splits = 2
+    n_col_splits = 2
     h, w, _ = img.shape
 
     sub_h = h // n_row_splits
@@ -82,11 +54,9 @@ def main():
                 col * sub_w: (col + 1) * sub_w,
                 :,
             ]
-            show_image(sub_img)
             sub_img = transform(sub_img)
-            show_image(sub_img)
             rand_num = get_rand_num()
-            # save_image(sub_img, save_path=save_dir/f"{rand_num}.png")
+            save_image(sub_img, save_path=save_dir/f"{rand_num}.png")
 
 
 if __name__ == "__main__":

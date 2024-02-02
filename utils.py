@@ -11,6 +11,7 @@ from skimage.morphology import local_maxima
 from skimage.segmentation import watershed
 from moviepy.video.io.bindings import mplfig_to_npimage
 from io import BytesIO
+import random
 
 
 def load_image(url_or_path):
@@ -37,3 +38,31 @@ def save_image(img, save_path):
     cv2.imwrite(
         filename=str(save_path), img=img[:, :, :: -1], params=[cv2.IMWRITE_JPEG_QUALITY, 100],
     )
+
+
+def vflip(img):
+    return img[:: -1, ...]
+
+
+def hflip(img):
+    return img[:, :: -1, :]
+
+
+def rotate(img):
+    temp = np.transpose(img, axes=(1, 0, 2))
+    temp = hflip(temp)
+    return temp
+
+
+def transform(img):
+    if random.random() < 0.5:
+        img = vflip(img)
+    if random.random() < 0.5:
+        img = hflip(img)
+    if random.random() < 0.5:
+        img = rotate(img)
+    return img
+
+
+def get_rand_num():
+    return random.randint(10 ** 9, (10 ** 10) - 1)
