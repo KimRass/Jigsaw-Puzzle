@@ -37,16 +37,15 @@ def main():
     args = get_args()
 
     img = load_image("/Users/jongbeomkim/Desktop/workspace/Gatys-et-al.-2016/examples/content_images/content_image1.jpg")
-    img.shape
 
-    n_row_splits = 2
-    n_col_splits = 2
+    n_row_splits = 3
+    n_col_splits = 3
     h, w, _ = img.shape
 
     sub_h = h // n_row_splits
     sub_w = w // n_col_splits
 
-    save_dir = Path("/Users/jongbeomkim/Documents/dmeta")
+    save_dir = Path("/Users/jongbeomkim/Documents/dmeta/3by3")
     for row in range(n_row_splits):
         for col in range(n_col_splits):
             sub_img = img[

@@ -66,3 +66,14 @@ def transform(img):
 
 def get_rand_num():
     return random.randint(10 ** 9, (10 ** 10) - 1)
+
+
+def load_patches(patches_dir):
+    patches = dict()
+    for idx, img_path in enumerate(Path(patches_dir).glob("*.png")):
+        patch = load_image(img_path)
+        sub_h, sub_w, _ = patch.shape
+        if sub_w < sub_h:
+            patch = rotate(patch)
+        patches[idx] = patch
+    return patches
