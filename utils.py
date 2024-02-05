@@ -35,6 +35,7 @@ def show_image(img):
 
 
 def save_image(img, save_path):
+    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(
         filename=str(save_path), img=img[:, :, :: -1], params=[cv2.IMWRITE_JPEG_QUALITY, 100],
     )
@@ -77,3 +78,18 @@ def load_patches(patches_dir):
             patch = rotate(patch)
         patches[idx] = patch
     return patches
+
+
+def merge_patches(patches, order, M, N):
+    sub_h, sub_w, _ = patches[0].shape
+    merged = np.empty(
+        shape=(sub_h * M, sub_w * N, 3), dtype="uint8",
+    )
+    for row in range(M):
+        for col in range(N):
+            merged[
+                row * sub_h: (row + 1) * sub_h,
+                col * sub_w: (col + 1) * sub_w,
+                :,
+            ] = patches[order[row * N + col]]
+    return merged

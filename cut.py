@@ -1,9 +1,6 @@
-from PIL import Image
 import albumentations as A
-import random
 from pathlib import Path
 import argparse
-import numpy as np
 
 from utils import (
     load_image,
@@ -17,10 +14,10 @@ from utils import (
 def get_args(to_upperse=True):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--image_path", type=str, required=True)
+    parser.add_argument("--img_path", type=str, required=True)
     parser.add_argument("--M", type=int, required=True)
     parser.add_argument("--N", type=int, required=True)
-    parser.add_argument("--save_dir", type=int, required=True)
+    parser.add_argument("--save_dir", type=str, required=True)
 
     args = parser.parse_args()
 
@@ -33,21 +30,32 @@ def get_args(to_upperse=True):
     return args
 
 
+def empty_dir(trg_dir):
+    try:
+        path = Path(trg_dir)
+        for item in path.glob('*'):
+            if item.is_file():
+                item.unlink()
+            elif item.is_dir():
+                item.rmdir()
+        
+        print(f"Emptied the directory'{trg_dir}'!")
+    except Exception as e:
+        print(f"Error occured while trying to empty '{trg_dir}';\n{e}")
+
+
 def main():
     args = get_args()
 
-    img = load_image("/Users/jongbeomkim/Desktop/workspace/Gatys-et-al.-2016/examples/content_images/content_image1.jpg")
+    img = load_image(args.IMG_PATH)
 
-    n_row_splits = 3
-    n_col_splits = 3
+    empty_dir(args.SAVE_DIR)
+
     h, w, _ = img.shape
-
-    sub_h = h // n_row_splits
-    sub_w = w // n_col_splits
-
-    save_dir = Path("/Users/jongbeomkim/Documents/dmeta/3by3")
-    for row in range(n_row_splits):
-        for col in range(n_col_splits):
+    sub_h = h // args.M
+    sub_w = w // args.N
+    for row in range(args.M):
+        for col in range(args.N):
             sub_img = img[
                 row * sub_h: (row + 1) * sub_h,
                 col * sub_w: (col + 1) * sub_w,
@@ -55,7 +63,8 @@ def main():
             ]
             sub_img = transform(sub_img)
             rand_num = get_rand_num()
-            save_image(sub_img, save_path=save_dir/f"{rand_num}.png")
+            save_image(sub_img, save_path=Path(args.SAVE_DIR)/f"{rand_num}.png")
+    print(f"Completed cutting the image into {args.M} x {args.N} patches!")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,9 @@ from pathlib import Path
 import argparse
 import numpy as np
 from copy import deepcopy
+import math
 # from itertools import permutations
+from collections import OrderedDict
 
 from utils import load_image, show_image, save_image, rotate, hflip, vflip, load_patches
 
@@ -45,21 +47,20 @@ def edge_idx_to_edge(img, edge_idx):
 
 def get_sorted_dists(patches):
     dists = dict()
-    for idx1 in patches:
-        patch1 = patches[idx1]
-        for idx2 in patches:
-            patch2 = patches[idx2]
-            if idx1 >= idx2:
+    for patch_idx1, patch1 in patches.items():
+        for patch_idx2, patch2 in patches.items():
+            if patch_idx1 >= patch_idx2:
                 continue
 
+            best_dist = math.inf
             for edge_idx1 in range(4):
+                edge1 = edge_idx_to_edge(patch1, edge_idx1)
                 for edge_idx2 in range(4):
-                    for flip_idx in range(2):
-                        edge1 = edge_idx_to_edge(patch1, edge_idx1)
-                        edge2 = edge_idx_to_edge(patch2, edge_idx2)
-                        if edge1.shape != edge2.shape:
-                            continue
+                    edge2 = edge_idx_to_edge(patch2, edge_idx2)
+                    if edge1.shape != edge2.shape:
+                        continue
 
+                    for flip_idx in range(2):
                         if flip_idx == 0:
                             dist = get_l2_dist(edge1, edge2)
                         else:
@@ -68,15 +69,24 @@ def get_sorted_dists(patches):
                                 dist = get_l2_dist(edge1, vflip(edge2))
                             else:
                                 dist = get_l2_dist(edge1, hflip(edge2))
-                        
-                        dists[(idx1, idx2, edge_idx1, edge_idx2, flip_idx)] = dist
-    
-    sorted_dists = dict(sorted(dists.items(), key=lambda item: item[1]))
+                        if dist < best_dist:
+                            best_dist = dist
+                            best_edge_idx1 = edge_idx1
+                            best_edge_idx2 = edge_idx2
+                            best_flip_idx = flip_idx
+                        dists[(patch_idx1, patch_idx2)] = (
+                            best_edge_idx1,
+                            best_edge_idx2,
+                            best_flip_idx,
+                            best_dist,
+                        )
+
+    sorted_dists = dict(sorted(dists.items(), key=lambda item: item[1][3]))
     return sorted_dists
 
 
-def get_coord_of_idx(arr1, idx):
-    x, y = np.where(arr1 == idx)
+def get_coord_of_idx(idx_arr, idx):
+    x, y = np.where(idx_arr == idx)
     try:
         return [x[0], y[0]]
     except Exception:
@@ -135,9 +145,31 @@ def change_coord(coord, edge_idx):
         coord[1] -= 1
 
 
-def fill_arr(arr1, coord, idx):
+def fill_arr(idx_arr, coord, idx):
     x, y = coord
-    arr1[x, y] = idx
+    if idx_arr[x, y] == 255:
+        idx_arr[x, y] = idx
+
+
+def transform_dic(dic, idx):
+    new_dic = deepcopy(dic)
+    for temp_idx in range(idx + 1, len(dic)):
+        new_dic[temp_idx + 1] = dic[temp_idx]
+    new_dic[idx + 2] = dic[idx]
+    return new_dic
+
+
+def modify_patches(patches, temp_patch_idx1, temp_patch_idx2, flip_idx):
+    if temp_patch_idx1 in [1, 3]:
+        if temp_patch_idx2 == temp_patch_idx1:
+            patches[temp_patch_idx2] = hflip(patches[temp_patch_idx2])
+        if flip_idx == 1:
+            patches[temp_patch_idx2] = vflip(patches[temp_patch_idx2])
+    else:
+        if temp_patch_idx2 == temp_patch_idx1:
+            patches[temp_patch_idx2] = vflip(patches[temp_patch_idx2])
+        if flip_idx == 1:
+            patches[temp_patch_idx2] = hflip(patches[temp_patch_idx2])
 
 
 def main():
@@ -149,80 +181,58 @@ def main():
     show_image(merged)
 
 
-    tot_merged = np.empty(
-        shape=(sub_h * n_row_splits * 2, sub_w * n_col_splits * 2, 3), dtype="uint8",
-    )
+    # tot_merged = np.empty(
+    #     shape=(sub_h * n_row_splits * 2, sub_w * n_col_splits * 2, 3), dtype="uint8",
+    # )
 
-    arr1 = np.full((12, 12), fill_value=255, dtype="uint8")
-    arr2 = np.full((12, 12), fill_value=255, dtype="uint8")
+    sorted_dists = get_sorted_dists(patches)
+    dic = {idx: (*k, *v) for idx, (k, v) in enumerate(sorted_dists.items())}
+    dic = {k: v for idx, (k, v) in enumerate(dic.items()) if idx <= 5}
+    # dic
+
+    idx_arr = np.full((12, 12), fill_value=255, dtype="uint8")
+    # dist_arr = np.zeros((12, 12))
     coord = [5, 5]
 
-    # global_cnt = 0
-    breaker = False
-    for idx1 in patches:
-        if breaker:
+    patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx, dist = dic[0]
+    fill_arr(idx_arr, coord, patch_idx1)
+    change_coord(coord, edge_idx1)
+    fill_arr(idx_arr, coord, patch_idx2)
+    patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx, dist
+    idx_arr
+
+    idx = 1
+    while True:
+        if (idx_arr != 255).sum() >= n_row_splits * n_col_splits:
             break
 
-        dists = dict()
-        patch1 = patches[idx1]
-        for idx2 in patches:
-            patch2 = patches[idx2]
-            if idx1 >= idx2:
-                continue
+        patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx, dist = dic[idx]
+        coord1 = get_coord_of_idx(idx_arr, patch_idx1)
+        coord2 = get_coord_of_idx(idx_arr, patch_idx2)
+        if coord1:
+            coord = deepcopy(coord1)
+            change_coord(coord, edge_idx1)
+            fill_arr(idx_arr, coord, patch_idx2)
+        elif coord2:
+            coord = deepcopy(coord2)
+            change_coord(coord, edge_idx2)
+            fill_arr(idx_arr, coord, patch_idx1)
+        else:
+            # print(patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx, dist)
+            dic = transform_dic(dic, idx)
+            # break
+        idx += 1
+        patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx, dist
+        idx_arr
 
-            for edge_idx1 in range(4):
-                edge1 = edge_idx_to_edge(patch1, edge_idx1)
-                for edge_idx2 in range(4):
-                    edge2 = edge_idx_to_edge(patch2, edge_idx2)
-                    if edge1.shape != edge2.shape:
-                        continue
 
-                    for flip_idx in range(2):
-                        if flip_idx == 0:
-                            dist = get_l2_dist(edge1, edge2)
-                        else:
-                            edge_h, edge_w, _ = edge2.shape
-                            if edge_h >= edge_w:
-                                dist = get_l2_dist(edge1, vflip(edge2))
-                            else:
-                                dist = get_l2_dist(edge1, hflip(edge2))
-                        # print(idx1, idx2, edge_idx1, edge_idx2, flip_idx, dist)
-                        # dists[(idx2, edge_idx1, edge_idx2, flip_idx)] = dist
-                        if (idx2 not in dists) or (idx2 in dists and dist < dists[idx2][3]):
-                            dists[idx2] = (edge_idx1, edge_idx2, flip_idx, dist)
-                        # dists
-        sorted_dists = dict(sorted(dists.items(), key=lambda item: item[1][3]))
-        # sorted_dists
-        # break
 
-        cnt = 0
-        for idx2, (edge_idx1, edge_idx2, flip_idx, dist) in sorted_dists.items():
-            cnt += 1
-            if cnt > 2:
-                break
-            # if global_cnt >= n_row_splits * n_col_splits:
-            if (arr1 != 255).sum() >= n_row_splits * n_col_splits:
-                breaker = True
-                break
 
-            if not get_coord_of_idx(arr1, idx1) and not get_coord_of_idx(arr1, idx2):
-                fill_arr(arr1, coord, idx1)
-                fill_arr(arr2, coord, dist)
-                # global_cnt += 1
-            coord1 = get_coord_of_idx(arr1, idx1)
-            if coord1 and not get_coord_of_idx(arr1, idx2):
-                coord = deepcopy(coord1)
-                change_coord(coord, edge_idx1)
-                fill_arr(arr1, coord, idx2)
-                # global_cnt += 1
-            elif not get_coord_of_idx(arr1, idx1):
-                coord = get_coord_of_idx(arr1, idx2)
-                change_coord(coord, edge_idx2)
-                fill_arr(arr1, coord, idx1)
-                # global_cnt += 1
 
-            # merged = merge_two_patches(patches, idx1, idx2, edge_idx1, edge_idx2, flip_idx)
-            print(idx1, idx2, edge_idx1, edge_idx2, flip_idx)
-            print(arr1)
-    # arr1
-            # show_image(merged)
+# 7 3 5
+# 6 4 1
+# 8 2 0
+
+# 0 2 8
+# 1 4 6
+# 5 3 7
