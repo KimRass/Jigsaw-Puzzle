@@ -8,6 +8,7 @@ from utils import (
     save_image,
     transform,
     get_rand_num,
+    empty_dir,
 )
 
 
@@ -28,20 +29,6 @@ def get_args(to_upperse=True):
             new_args_dict[k.upper()] = v
         args = argparse.Namespace(**new_args_dict)    
     return args
-
-
-def empty_dir(trg_dir):
-    try:
-        path = Path(trg_dir)
-        for item in path.glob('*'):
-            if item.is_file():
-                item.unlink()
-            elif item.is_dir():
-                item.rmdir()
-        
-        print(f"Emptied the directory'{trg_dir}'!")
-    except Exception as e:
-        print(f"Error occured while trying to empty '{trg_dir}';\n{e}")
 
 
 def main():

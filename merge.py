@@ -10,7 +10,7 @@ from itertools import product
 from tqdm import tqdm
 
 from utils import (
-    save_image, rotate, hflip, vflip, load_patches, merge_patches, show_image,
+    save_image, rotate, hflip, vflip, load_patches, merge_patches, show_image, empty_dir,
 )
 
 
@@ -93,7 +93,7 @@ def sort_patch_indices_pairs_by_min_dist(patches):
         pair_dist[(patch_idx1, patch_idx2)] = best_dist
 
     pair_dist = sorted(pair_dist.items(), key=lambda x: x[1])
-    print(pair_dist)
+    # print(pair_dist)
     pairs = {idx: i[0] for idx, i in enumerate(pair_dist)}
 
     patch_idx1, patch_idx2 = pairs[0]
@@ -157,7 +157,7 @@ def change_coord(coord, edge_idx):
         coord[1] -= 1
 
 
-def fill_arr(idx_arr, coord, patch_idx):
+def fill_index_arr(idx_arr, coord, patch_idx):
     x, y = coord
     if patch_idx not in idx_arr and idx_arr[x, y] == 255:
         idx_arr[x, y] = patch_idx
@@ -171,7 +171,41 @@ def transform_pairs(pairs, idx):
     return new_pairs
 
 
-def modify_patches(patches, idx_arr, patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx):
+def modify_patches1(patches, patch_idx2, edge_idx1, edge_idx2, flip_idx):
+    # print(patch_idx2, edge_idx1, edge_idx2, flip_idx)
+    if edge_idx2 in [1, 3]:
+        if edge_idx2 == edge_idx1:
+            patches[patch_idx2] = hflip(patches[patch_idx2])
+        if flip_idx == 1:
+            patches[patch_idx2] = vflip(patches[patch_idx2])
+    else:
+        if edge_idx2 == edge_idx1:
+            patches[patch_idx2] = vflip(patches[patch_idx2])
+        if flip_idx == 1:
+            patches[patch_idx2] = hflip(patches[patch_idx2])
+
+
+def init_index_array(patches, pairs, M, N):
+    idx_arr = np.full((M * 3, N * 3), fill_value=255, dtype="uint8")
+    coord = [int(M * 1.5), int(N * 1.5)]
+
+    patch_idx1, patch_idx2 = pairs[0]
+    _, best_edge_idx1, best_edge_idx2, best_flip_idx = get_best_params(patches, patch_idx1, patch_idx2)
+    # print(patch_idx1, patch_idx2, _, best_edge_idx1, best_edge_idx2, best_flip_idx)
+    # show_image(patches[patch_idx1])
+    # show_image(patches[patch_idx2])
+
+    fill_index_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx1)
+    change_coord(coord, best_edge_idx1)
+    fill_index_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx2)
+
+    modify_patches1(patches, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+    # print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+    # print(idx_arr)
+    return idx_arr, coord
+
+
+def modify_patches2(patches, idx_arr, patch_idx1, patch_idx2, edge_idx1, edge_idx2, flip_idx):
     # print(idx_arr)
     # print(patch_idx1, patch_idx2)
     if patch_idx1 in idx_arr and patch_idx2 in idx_arr:
@@ -187,7 +221,7 @@ def modify_patches(patches, idx_arr, patch_idx1, patch_idx2, edge_idx1, edge_idx
     else:
         return
 
-    print(trg_patch_idx)
+    # print(trg_patch_idx)
     if trg_edge_idx in [1, 3]:
         if edge_idx2 == edge_idx1:
             patches[trg_patch_idx] = hflip(patches[trg_patch_idx])
@@ -200,26 +234,6 @@ def modify_patches(patches, idx_arr, patch_idx1, patch_idx2, edge_idx1, edge_idx
             patches[trg_patch_idx] = hflip(patches[trg_patch_idx])
 
 
-def init_index_array(patches, pairs, M, N):
-    idx_arr = np.full((M * 3, N * 3), fill_value=255, dtype="uint8")
-    coord = [int(M * 1.5), int(N * 1.5)]
-
-    patch_idx1, patch_idx2 = pairs[0]
-    _, best_edge_idx1, best_edge_idx2, best_flip_idx = get_best_params(patches, patch_idx1, patch_idx2)
-    # print(patch_idx1, patch_idx2, _, best_edge_idx1, best_edge_idx2, best_flip_idx)
-    # show_image(patches[patch_idx1])
-    # show_image(patches[patch_idx2])
-
-    fill_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx1)
-    change_coord(coord, best_edge_idx1)
-    fill_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx2)
-
-    modify_patches(patches, idx_arr, patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
-    print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
-    print(idx_arr)
-    return idx_arr, coord
-
-
 def check_termination_flag(idx_arr, M, N):
     # print(idx_arr)
     # print((idx_arr != 255).sum())
@@ -228,8 +242,8 @@ def check_termination_flag(idx_arr, M, N):
 
 def get_order(patches, idx_arr, pairs, M, N):
     idx = 1
-    # while True:
-    for _ in range(4):
+    while True:
+    # for _ in range(4):
         if check_termination_flag(idx_arr=idx_arr, M=M, N=N):
             break
 
@@ -239,19 +253,19 @@ def get_order(patches, idx_arr, pairs, M, N):
         coord1 = get_coord_of_idx(idx_arr, patch_idx1)
         coord2 = get_coord_of_idx(idx_arr, patch_idx2)
         if coord1:
-            modify_patches(patches, idx_arr, patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+            modify_patches2(patches, idx_arr, patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
             coord = deepcopy(coord1)
             change_coord(coord, best_edge_idx1)
-            fill_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx2)
-            print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
-            print(idx_arr)
+            fill_index_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx2)
+            # print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+            # print(idx_arr)
         elif coord2:
-            modify_patches(patches, idx_arr, patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+            modify_patches2(patches, idx_arr, patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
             coord = deepcopy(coord2)
             change_coord(coord, best_edge_idx2)
-            fill_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx1)
-            print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
-            print(idx_arr)
+            fill_index_arr(idx_arr=idx_arr, coord=coord, patch_idx=patch_idx1)
+            # print(patch_idx1, patch_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+            # print(idx_arr)
         else:
             pairs = transform_pairs(pairs, idx)
         idx += 1
@@ -259,26 +273,39 @@ def get_order(patches, idx_arr, pairs, M, N):
     return order
 
 
-def merge(input_dir, M, N, save_path, idx):
-    input_dir = "/Users/jongbeomkim/Documents/dmeta/cut"
+def get_grid_distance(img, M, N):
+    # M = 5
+    # N = 4
+    h, w, _ = img.shape
+    sub_h = h // M
+    sub_w = w // N
+    tot_dist = 0
+    for row_idx in range(1, M):
+        line1 = img[row_idx * sub_h - 1: row_idx * sub_h, :, :]
+        line2 = img[row_idx * sub_h: row_idx * sub_h + 1, :, :]
+        tot_dist += get_l2_dist(line1, line2)
+    for col_idx in range(1, N):
+        line1 = img[:, col_idx * sub_w - 1: col_idx * sub_w, :]
+        line2 = img[:, col_idx * sub_w: col_idx * sub_w + 1, :]
+        tot_dist += get_l2_dist(line1, line2)
+    return tot_dist
+
+
+def merge(input_dir, M, N):
+    # input_dir = "/Users/jongbeomkim/Documents/dmeta/cut"
+    # M = 4
+    # N = 4
     patches = load_patches(input_dir)
-    merged = merge_patches(
-        patches=patches, order=range(M * N), M=M, N=N,
-    )
-    show_image(merged)
+    merged = merge_patches(patches=patches, order=range(M * N), M=M, N=N)
     pairs = sort_patch_indices_pairs_by_min_dist(patches)
 
     idx_arr, _ = init_index_array(patches=patches, pairs=pairs, M=M, N=N)
+    # show_image(patches[9])
     order = get_order(patches=patches, idx_arr=idx_arr, pairs=pairs, M=M, N=N)
-    merged = merge_patches(
-        patches=patches, order=order, M=M, N=N,
-    )
-    save_path = Path(save_path)
-    save_image(
-        merged,
-        save_path=save_path.parent/f"{save_path.stem}-({idx}){save_path.suffix}",
-    )
-    show_image(merged)
+    # print(idx_arr)
+    # order = [4, 9] + [0] * 18
+    merged = merge_patches(patches=patches, order=order, M=M, N=N)
+    return merged
 
 
 def main():
@@ -286,15 +313,18 @@ def main():
     if args.M * args.N != len(list(Path(args.INPUT_DIR).glob("*.png"))):
         print("Wrong number of patches!")
     else:
-        merge(
-            input_dir=args.INPUT_DIR, M=args.M, N=args.N, save_path=args.SAVE_PATH, idx=1,
-        )
-        if args.M != args.N:
-            merge(
-                input_dir=args.INPUT_DIR, M=args.N, N=args.M, save_path=args.SAVE_PATH, idx=2,
-            )
+        if args.M == args.N:
+            merged = merge(input_dir=args.INPUT_DIR, M=args.M, N=args.N)
+        else:
+            merged1 = merge(input_dir=args.INPUT_DIR, M=args.M, N=args.N)
+            grid_dist1 = get_grid_distance(merged1, M=args.M, N=args.N)
+            merged2 = merge(input_dir=args.INPUT_DIR, M=args.N, N=args.M)
+            grid_dist2 = get_grid_distance(merged2, M=args.N, N=args.M)
+            merged = merged1 if grid_dist1 <= grid_dist2 else merged2
+
+        save_image(merged, save_path=args.SAVE_PATH)
+        show_image(merged)
 
 
 if __name__ == "__main__":
     main()
-# [(7, 11), (10, 11), (6, 7), (1, 6), (2, 6), (2, 5), (0, 2), ...]

@@ -1,15 +1,8 @@
 import numpy as np
-import cv2
-from scipy import ndimage as ndi
-from PIL import Image, ImageDraw
 import requests
+import cv2
+from PIL import Image
 from pathlib import Path
-import pandas as pd
-from scipy.sparse import coo_matrix
-from skimage.feature import peak_local_max
-from skimage.morphology import local_maxima
-from skimage.segmentation import watershed
-from moviepy.video.io.bindings import mplfig_to_npimage
 from io import BytesIO
 import random
 
@@ -93,3 +86,36 @@ def merge_patches(patches, order, M, N):
                 :,
             ] = patches[order[row * N + col]]
     return merged
+
+
+# def merge_patches(patches, idx_arr, M, N):
+#     x, y = np.where(idx_arr != 255)
+#     idx_arr[x[0]: x[1] + 1, y[0]: y[1] + 1][0]
+#     order
+
+#     sub_h, sub_w, _ = patches[0].shape
+#     merged = np.empty(
+#         shape=(sub_h * M, sub_w * N, 3), dtype="uint8",
+#     )
+#     for row in range(M):
+#         for col in range(N):
+#             merged[
+#                 row * sub_h: (row + 1) * sub_h,
+#                 col * sub_w: (col + 1) * sub_w,
+#                 :,
+#             ] = patches[order[row * N + col]]
+#     return merged
+
+
+def empty_dir(trg_dir):
+    try:
+        path = Path(trg_dir)
+        for item in path.glob('*'):
+            if item.is_file():
+                item.unlink()
+            elif item.is_dir():
+                item.rmdir()
+        
+        print(f"Emptied the directory'{trg_dir}'!")
+    except Exception as e:
+        print(f"Error occured while trying to empty '{trg_dir}';\n{e}")
