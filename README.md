@@ -4,11 +4,18 @@
 # e.g.,
 python3 make.py\
     --img_path="./test/test_image.jpg"\
-    --M=6\ # Number of row splits
-    --N=5\ # Number of column splits
+    --M=8\ # Number of row splits
+    --N=8\ # Number of column splits
     --save_dir="./test/made"\ # Directory to save Jigsaw puzzle pieces
 ```
 ## 2) Solving Jigsaw Puzzle
+```bash
+python3 solve.py\
+    --input_dir="./test/made"\
+    --M=8\
+    --N=8\
+    --save_path="./test/solved.png"\
+```
 
 # 2. Implementation Details
 ## 1) Making Jigsaw Puzzle

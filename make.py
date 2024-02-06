@@ -69,17 +69,17 @@ class JigsawPuzzleMaker(object):
         h, w, _ = img.shape
         sub_h = h // M
         sub_w = w // N
-        patches = list()
+        pieces = list()
         for row in range(M):
             for col in range(N):
-                patch = img[
+                piece = img[
                     row * sub_h: (row + 1) * sub_h,
                     col * sub_w: (col + 1) * sub_w,
                     :,
                 ]
-                patch = self._randomly_transform(patch)
-                patches.append(patch)
-        return patches
+                piece = self._randomly_transform(piece)
+                pieces.append(piece)
+        return pieces
 
     def save(self, img_path, M, N, save_dir):
         """
@@ -88,11 +88,11 @@ class JigsawPuzzleMaker(object):
         self._empty_dir(save_dir)
 
         img = load_image(img_path)
-        patches = self.make(img, M=M, N=N)
-        for patch in patches:
+        pieces = self.make(img, M=M, N=N)
+        for piece in pieces:
             rand_num = self._get_rand_num()
-            save_image(patch, save_path=Path(save_dir)/f"{rand_num}.png")
-        print(f"Completed splitting the image into {M} x {N} patches!")
+            save_image(piece, save_path=Path(save_dir)/f"{rand_num}.png")
+        print(f"Completed splitting the image into {M} x {N} pieces!")
 
 
 def main():

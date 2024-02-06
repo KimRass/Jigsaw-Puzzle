@@ -4,7 +4,6 @@ import cv2
 from PIL import Image
 from pathlib import Path
 from io import BytesIO
-import random
 
 
 def load_image(url_or_path):
@@ -46,12 +45,12 @@ def rotate(img):
     return hflip(np.transpose(img, axes=(1, 0, 2)))
 
 
-def load_patches(patches_dir):
-    patches = dict()
-    for idx, img_path in enumerate(Path(patches_dir).glob("*.png")):
-        patch = load_image(img_path)
-        sub_h, sub_w, _ = patch.shape
+def load_pieces(pieces_dir):
+    pieces = dict()
+    for idx, img_path in enumerate(Path(pieces_dir).glob("*.png")):
+        piece = load_image(img_path)
+        sub_h, sub_w, _ = piece.shape
         if sub_w < sub_h:
-            patch = rotate(patch)
-        patches[idx] = patch
-    return patches
+            piece = rotate(piece)
+        pieces[idx] = piece
+    return pieces
