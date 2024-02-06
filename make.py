@@ -26,7 +26,10 @@ def get_args(to_upperse=True):
 
 class JigsawPuzzleMaker(object):
     @staticmethod
-    def randomly_transform(img):
+    def _randomly_transform(img):
+        """
+        `img`에 상하반전, 좌우반전, 시계방향의 90° 회전을 각각 50%의 확률로 적용합니다.
+        """
         if random.random() < 0.5:
             img = vflip(img)
         if random.random() < 0.5:
@@ -35,24 +38,11 @@ class JigsawPuzzleMaker(object):
             img = rotate(img)
         return img
 
-    def make(self, img, M, N):
-        h, w, _ = img.shape
-        sub_h = h // M
-        sub_w = w // N
-        patches = list()
-        for row in range(M):
-            for col in range(N):
-                patch = img[
-                    row * sub_h: (row + 1) * sub_h,
-                    col * sub_w: (col + 1) * sub_w,
-                    :,
-                ]
-                patch = self.randomly_transform(patch)
-                patches.append(patch)
-        return patches
-
     @staticmethod
-    def empty_dir(trg_dir):
+    def _empty_dir(trg_dir):
+        """
+        `input_dir`을 비웁니다.
+        """
         try:
             path = Path(trg_dir)
             for item in path.glob('*'):
@@ -66,16 +56,41 @@ class JigsawPuzzleMaker(object):
             print(f"Error occured while trying to empty '{trg_dir}';\n{e}")
 
     @staticmethod
-    def get_rand_num():
+    def _get_rand_num():
+        """
+        무작위로 10의 자리의 자연수를 생성합니다.
+        """
         return random.randint(10 ** 9, (10 ** 10) - 1)
 
+    def make(self, img, M, N):
+        """
+        `img`에 대해 `M` × `N`의 Jigsaw puzzle을 만듭니다.
+        """
+        h, w, _ = img.shape
+        sub_h = h // M
+        sub_w = w // N
+        patches = list()
+        for row in range(M):
+            for col in range(N):
+                patch = img[
+                    row * sub_h: (row + 1) * sub_h,
+                    col * sub_w: (col + 1) * sub_w,
+                    :,
+                ]
+                patch = self._randomly_transform(patch)
+                patches.append(patch)
+        return patches
+
     def save(self, img_path, M, N, save_dir):
-        self.empty_dir(save_dir)
+        """
+        `M` × `N`의 Jigsaw puzzle을 만들고 `save_dir`에 저장합니다.
+        """
+        self._empty_dir(save_dir)
 
         img = load_image(img_path)
         patches = self.make(img, M=M, N=N)
         for patch in patches:
-            rand_num = self.get_rand_num()
+            rand_num = self._get_rand_num()
             save_image(patch, save_path=Path(save_dir)/f"{rand_num}.png")
         print(f"Completed splitting the image into {M} x {N} patches!")
 

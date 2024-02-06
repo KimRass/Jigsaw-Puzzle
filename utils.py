@@ -43,9 +43,7 @@ def hflip(img):
 
 
 def rotate(img):
-    temp = np.transpose(img, axes=(1, 0, 2))
-    temp = hflip(temp)
-    return temp
+    return hflip(np.transpose(img, axes=(1, 0, 2)))
 
 
 def load_patches(patches_dir):
