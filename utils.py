@@ -48,20 +48,6 @@ def rotate(img):
     return temp
 
 
-def transform(img):
-    if random.random() < 0.5:
-        img = vflip(img)
-    if random.random() < 0.5:
-        img = hflip(img)
-    if random.random() < 0.5:
-        img = rotate(img)
-    return img
-
-
-def get_rand_num():
-    return random.randint(10 ** 9, (10 ** 10) - 1)
-
-
 def load_patches(patches_dir):
     patches = dict()
     for idx, img_path in enumerate(Path(patches_dir).glob("*.png")):
@@ -71,37 +57,3 @@ def load_patches(patches_dir):
             patch = rotate(patch)
         patches[idx] = patch
     return patches
-
-
-
-# def merge_patches(patches, idx_arr, M, N):
-#     x, y = np.where(idx_arr != 255)
-#     idx_arr[x[0]: x[1] + 1, y[0]: y[1] + 1][0]
-#     order
-
-#     sub_h, sub_w, _ = patches[0].shape
-#     merged = np.empty(
-#         shape=(sub_h * M, sub_w * N, 3), dtype="uint8",
-#     )
-#     for row in range(M):
-#         for col in range(N):
-#             merged[
-#                 row * sub_h: (row + 1) * sub_h,
-#                 col * sub_w: (col + 1) * sub_w,
-#                 :,
-#             ] = patches[order[row * N + col]]
-#     return merged
-
-
-def empty_dir(trg_dir):
-    try:
-        path = Path(trg_dir)
-        for item in path.glob('*'):
-            if item.is_file():
-                item.unlink()
-            elif item.is_dir():
-                item.rmdir()
-        
-        print(f"Emptied the directory'{trg_dir}'!")
-    except Exception as e:
-        print(f"Error occured while trying to empty '{trg_dir}';\n{e}")

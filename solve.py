@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, "/Users/jongbeomkim/Desktop/workspace/dmeta-coding_test")
-
 from pathlib import Path
 import argparse
 import numpy as np
@@ -8,7 +5,7 @@ from copy import deepcopy
 import math
 from itertools import product
 
-from utils import load_patches, hflip, vflip, show_image, save_image
+from utils import load_patches, hflip, vflip, save_image
 
 
 def get_args(to_upperse=True):
@@ -31,12 +28,6 @@ def get_args(to_upperse=True):
 
 
 class JigsawPuzzleSolver(object):
-    def __init__(self, input_dir):
-
-        self.input_dir = input_dir
-
-        self.patches = load_patches(input_dir)
-
     @staticmethod
     def edge_idx_to_edge(img, edge_idx):
         if edge_idx == 0:
@@ -281,7 +272,9 @@ class JigsawPuzzleSolver(object):
             tot_dist += self.get_l2_dist(line1, line2)
         return tot_dist
 
-    def solve(self, M, N):
+    def solve(self, input_dir, M, N):
+        self.patches = load_patches(input_dir)
+
         if M == N:
             merged = self.merge(M=M, N=N)
         else:
@@ -292,17 +285,22 @@ class JigsawPuzzleSolver(object):
             merged = merged1 if grid_dist1 <= grid_dist2 else merged2
         return merged
 
+    def save(self, input_dir, M, N, save_path):
+        solved = self.solve(input_dir=input_dir, M=M, N=N)
+        save_image(solved, save_path=save_path)
+        print(f"Completed solving the Jigsaw puzzle!")
+
 
 def main():
     args = get_args()
-    
+
     if args.M * args.N != len(list(Path(args.INPUT_DIR).glob("*.png"))):
         print("Wrong number of patches!")
     else:
-        model = JigsawPuzzleSolver(input_dir=args.INPUT_DIR)
-        merged = model.solve(M=args.M, N=args.N)
-        # show_image(merged)
-        save_image(merged, save_path=args.SAVE_PATH)
+        model = JigsawPuzzleSolver()
+        model.save(
+            input_dir=args.INPUT_DIR, M=args.M, N=args.N, save_path=args.SAVE_PATH,
+        )
 
 
 if __name__ == "__main__":
