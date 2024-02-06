@@ -320,7 +320,9 @@ class JigsawPuzzleSolver(object):
         """
         self.pieces = load_pieces(input_dir)
 
-        if M == N:
+        if M == N == 1:
+            return self.pieces[0]
+        elif M == N:
             merged = self.merge(M=M, N=N)
         else:
             merged1 = self.merge(M=M, N=N)
@@ -339,6 +341,7 @@ class JigsawPuzzleSolver(object):
         solved = self.solve(input_dir=input_dir, M=M, N=N)
         save_image(solved, save_path=save_path)
         print(f"Completed solving the Jigsaw puzzle! ({self.get_elapsed_time(start_time)} elapsed.)")
+        print(f"Saved the result as '{save_path}'.")
 
 
 def main():

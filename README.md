@@ -9,6 +9,7 @@ python3 make.py\
     --N=8\ # Number of column splits
     --save_dir="./test/made"\ # Directory to save Jigsaw puzzle pieces
 ```
+- `M`, `N`은 자연수로서 크기에 제한은 없습니다.
 ## 2) Solving Jigsaw Puzzle
 ```bash
 python3 solve.py\
@@ -17,6 +18,7 @@ python3 solve.py\
     --N=8\
     --save_path="./test/solved.png"\
 ```
+- `M`, `N`은 자연수로서 크기에 제한은 없습니다.
 
 # 2. Implementation Details
 ## 1) Making Jigsaw Puzzle
