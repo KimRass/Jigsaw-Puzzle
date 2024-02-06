@@ -30,6 +30,9 @@ def get_args(to_upperse=True):
 
 
 class JigsawPuzzleSolver(object):
+    def __init__(self, margin=3):
+        self.margin = margin
+
     @staticmethod
     def get_elapsed_time(start_time):
         """
@@ -40,7 +43,7 @@ class JigsawPuzzleSolver(object):
     @staticmethod
     def edge_idx_to_edge(img, edge_idx):
         """
-        `edge_idx`는 0, 1, 2, 3 중 하나를 가질 수 있으며 각각 `img`의 상우하좌 Edge를 반환합니다.
+        `edge_idx`는 0, 1, 2, 3 중 하나를 가질 수 있으며 각각 `img`의 상우하좌 변을 반환합니다.
         """
         if edge_idx == 0:
             return img[: 1, :, :]
@@ -54,7 +57,7 @@ class JigsawPuzzleSolver(object):
     @staticmethod
     def get_l2_dist(edge1, edge2):
         """
-        두 개의 Edge 사이의 L2 distance를 반환합니다.
+        두 개의 변 사이의 L2 distance를 반환합니다.
         """
         return np.mean((edge1 - edge2) ** 2).round(3)
 
@@ -62,7 +65,7 @@ class JigsawPuzzleSolver(object):
         """
         `piece_idx1`, `piece_idx2`는 `self.pieces`에 대한 인덱스를 나타냅니다.
         `flip_idx`는 두 개의 조각들 중 어느 하나를 둘 간의 접촉면에 대해서 반대로 돌릴지 여부를 나타냅니다.
-        두 개의 조각들에 대해서 각 조각의 Edge를 추출한 후 L2 distance를 반환합니다.
+        두 개의 조각들에 대해서 각 조각의 변을 추출한 후 L2 distance를 반환합니다.
         """
         edge1 = self.edge_idx_to_edge(img=self.pieces[piece_idx1], edge_idx=edge_idx1)
         edge2 = self.edge_idx_to_edge(img=self.pieces[piece_idx2], edge_idx=edge_idx2)
@@ -81,7 +84,7 @@ class JigsawPuzzleSolver(object):
 
     def get_best_params(self, piece_idx1, piece_idx2):
         """
-        두 개의 조각에서 각각 Edge를 추출하여 L2 distance를 비교하는 8개의 경우의 수 중에서
+        두 개의 조각에서 각각 변을 추출하여 L2 distance를 비교하는 8개의 경우의 수 중에서
         가장 그 값이 작게 되는 경우의 Parameters를 반환합니다.
         """
         best_dist = math.inf
@@ -112,7 +115,7 @@ class JigsawPuzzleSolver(object):
     def sort_piece_indices_pairs_by_min_dist(self):
         """
         조각의 인덱스 쌍을 각각에 대응하는 서로 다른 두 조각 사이에서 발생 가능한 가장 작은
-        Edges 간의 L2 distance에 따라서 정렬합니다.
+        변들 간의 L2 distance에 따라서 정렬합니다.
         """
         pair_dist = dict()
         for piece_idx1, piece_idx2 in product(self.pieces, self.pieces):
@@ -173,6 +176,9 @@ class JigsawPuzzleSolver(object):
             self.coord[1] -= 1
 
     def modify_pieces1(self, piece_idx2, edge_idx1, edge_idx2, flip_idx):
+        """
+        `self.idx_arr`를 초기화할 때 배치할 두 조각들에 적당한 이미지 변환을 적용합니다.
+        """
         if edge_idx2 in [1, 3]:
             if edge_idx2 == edge_idx1:
                 self.pieces[piece_idx2] = hflip(self.pieces[piece_idx2])
@@ -185,8 +191,11 @@ class JigsawPuzzleSolver(object):
                 self.pieces[piece_idx2] = hflip(self.pieces[piece_idx2])
 
     def init_index_array(self, pairs, M, N):
-        self.idx_arr = np.full((M * 3, N * 3), fill_value=255, dtype="uint8")
-        self.coord = [int(M * 1.5), int(N * 1.5)]
+        """
+        `self.idx_arr`와 `self.coord`를 `pairs`의 첫 번째 원소를 가지고 초기화합니다.
+        """
+        self.idx_arr = np.full((M * self.margin, N * self.margin), fill_value=255, dtype="uint8")
+        self.coord = [int(M * self.margin // 2), int(N * self.margin // 2)]
 
         piece_idx1, piece_idx2 = pairs[0]
         _, best_edge_idx1, best_edge_idx2, best_flip_idx = self.get_best_params(piece_idx1, piece_idx2)
@@ -198,6 +207,9 @@ class JigsawPuzzleSolver(object):
         self.modify_pieces1(piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
 
     def modify_pieces2(self, piece_idx1, piece_idx2, edge_idx1, edge_idx2, flip_idx):
+        """
+        배치할 두 조각들에 적당한 이미지 변환을 적용합니다.
+        """
         if piece_idx1 in self.idx_arr and piece_idx2 in self.idx_arr:
             return
         
@@ -227,17 +239,10 @@ class JigsawPuzzleSolver(object):
         """
         return (self.idx_arr != 255).sum() >= M * N
 
-    def transform_pairs(pairs, pair_idx):
-        """
-        """
-        print("A")
-        new_pairs = deepcopy(pairs)
-        for trg_pair_idx in range(pair_idx + 1, len(pairs)):
-            new_pairs[trg_pair_idx + 1] = pairs[trg_pair_idx]
-        new_pairs[pair_idx + 2] = pairs[pair_idx]
-        return new_pairs
-
     def get_piece_order(self, pairs, M, N):
+        """
+        조각들을 어떤 순서로 병합할지를 계산합니다.
+        """
         pair_idx = 1
         while True:
             if self.check_termination_flag(M=M, N=N):
@@ -258,13 +263,14 @@ class JigsawPuzzleSolver(object):
                 self.modify_pieces2(piece_idx1, piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
                 self.change_coord(best_edge_idx2)
                 self.fill_index_arr(piece_idx1)
-            else:
-                pairs = self.transform_pairs(pairs, pair_idx=pair_idx)
             pair_idx += 1
         order = list(self.idx_arr[(self.idx_arr != 255)])
         return order
 
     def merge_pieces_by_order(self, order, M, N):
+        """
+        `order`에 따라 조각들을 병합합니다.
+        """
         sub_h, sub_w, _ = self.pieces[0].shape
         merged = np.empty(
             shape=(sub_h * M, sub_w * N, 3), dtype="uint8",
@@ -279,6 +285,9 @@ class JigsawPuzzleSolver(object):
         return merged
 
     def merge(self, M, N):
+        """
+        `M`, `N`에 따라 조각들을 병합합니다.
+        """
         pairs = self.sort_piece_indices_pairs_by_min_dist()
         self.init_index_array(pairs=pairs, M=M, N=N)
         order = self.get_piece_order(pairs=pairs, M=M, N=N)
@@ -286,6 +295,10 @@ class JigsawPuzzleSolver(object):
         return merged
 
     def calc_l2_dist_along_cell_edges(self, img, M, N):
+        """
+        병합된 이미지 (`img`)에 대해서 조각의 변으로 만들어지는 Grid를 따라
+        L2 distance의 총합을 계산합니다.
+        """
         h, w, _ = img.shape
         sub_h = h // M
         sub_w = w // N
@@ -301,6 +314,10 @@ class JigsawPuzzleSolver(object):
         return tot_dist
 
     def solve(self, input_dir, M, N):
+        """
+        `M`과 `N`이 서로 다를 경우 두 개의 병합된 이미지가 존재할 수 있는데,
+        이중에서 Grid를 따라 계산된 L2 distance의 총합이 더 작은 쪽을 반환합니다.
+        """
         self.pieces = load_pieces(input_dir)
 
         if M == N:
@@ -314,6 +331,9 @@ class JigsawPuzzleSolver(object):
         return merged
 
     def save(self, input_dir, M, N, save_path):
+        """
+        병합된 이미지 한 장을 저장합니다.
+        """
         start_time = time.time()
 
         solved = self.solve(input_dir=input_dir, M=M, N=N)
