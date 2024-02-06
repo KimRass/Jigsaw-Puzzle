@@ -1,4 +1,4 @@
-python3 merge.py\
+python3 merge_class.py\
     --input_dir="/Users/jongbeomkim/Documents/dmeta/cut"\
     --M=6\
     --N=5\

@@ -73,20 +73,6 @@ def load_patches(patches_dir):
     return patches
 
 
-def merge_patches(patches, order, M, N):
-    sub_h, sub_w, _ = patches[0].shape
-    merged = np.empty(
-        shape=(sub_h * M, sub_w * N, 3), dtype="uint8",
-    )
-    for row in range(M):
-        for col in range(N):
-            merged[
-                row * sub_h: (row + 1) * sub_h,
-                col * sub_w: (col + 1) * sub_w,
-                :,
-            ] = patches[order[row * N + col]]
-    return merged
-
 
 # def merge_patches(patches, idx_arr, M, N):
 #     x, y = np.where(idx_arr != 255)
