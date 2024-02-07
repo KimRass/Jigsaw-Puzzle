@@ -1,5 +1,5 @@
-python3 solve.py\
+python3 solve_square.py\
     --input_dir="./test/made"\
-    --M=6\
-    --N=6\
+    --M=4\
+    --N=4\
     --save_path="./test/solved.png"\

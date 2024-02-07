@@ -1,6 +1,5 @@
 # 1. How to Use
 - Python 3.9에서 이 저장소의 코드가 정상 작동함을 확인했습니다. 설치가 어려운 라이브러리는 사용되지 않습니다.
-- 조각들이 모두 정사각형일 때에도 정상적으로 작동합니다.
 ## 1) Making Jigsaw Puzzle
 ```bash
 # e.g.,
@@ -12,13 +11,22 @@ python3 make.py\
 ```
 - `M`, `N`은 자연수로서 크기에 제한은 없습니다.
 ## 2) Solving Jigsaw Puzzle
-```bash
-python3 solve.py\
-    --input_dir="./test/made"\
-    --M=8\
-    --N=8\
-    --save_path="./test/solved.png"\
-```
+- 조각들이 정사각형일 경우
+    ```bash
+    python3 solve_square.py\
+        --input_dir="./test/made"\
+        --M=8\
+        --N=8\
+        --save_path="./test/solved.png"\
+    ```
+- 조각들이 직사각형일 경우
+    ```bash
+    python3 solve_rect.py\
+        --input_dir="./test/made"\
+        --M=8\
+        --N=8\
+        --save_path="./test/solved.png"\
+    ```
 - `M`, `N`은 자연수로서 크기에 제한은 없습니다.
 
 # 2. Implementation Details
