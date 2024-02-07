@@ -7,7 +7,7 @@ from itertools import product
 import time
 from datetime import timedelta
 
-from utils import load_pieces, hflip, vflip, save_image
+from utils import load_pieces, hflip, vflip, rotate, save_image
 
 
 def get_args(to_upperse=True):
@@ -46,13 +46,16 @@ class JigsawPuzzleSolver(object):
         `edge_idx`는 0, 1, 2, 3 중 하나를 가질 수 있으며 각각 `img`의 상우하좌 변을 반환합니다.
         """
         if edge_idx == 0:
-            return img[: 1, :, :]
+            edge = img[: 1, :, :]
         elif edge_idx == 1:
-            return img[:, -1:, :]
+            edge = img[:, -1:, :]
         elif edge_idx == 2:
-            return img[-1:, :, :]
+            edge = img[-1:, :, :]
         else:
-            return img[:, :1, :]
+            edge = img[:, :1, :]
+        if edge.shape[1] == 1:
+            edge = edge.transpose(1, 0, 2)
+        return edge
 
     @staticmethod
     def get_l2_dist(edge1, edge2):
@@ -73,14 +76,9 @@ class JigsawPuzzleSolver(object):
             return math.inf
 
         if flip_idx == 0:
-            dist = self.get_l2_dist(edge1, edge2)
+            return self.get_l2_dist(edge1, edge2)
         else:
-            edge_h, edge_w, _ = edge2.shape
-            if edge_h >= edge_w:
-                dist = self.get_l2_dist(edge1, vflip(edge2))
-            else:
-                dist = self.get_l2_dist(edge1, hflip(edge2))
-        return dist
+            return self.get_l2_dist(edge1, hflip(edge2))
 
     def get_best_params(self, piece_idx1, piece_idx2):
         """
@@ -94,7 +92,6 @@ class JigsawPuzzleSolver(object):
                     dist = self.get_edge_dist(
                         piece_idx1, piece_idx2, edge_idx1, edge_idx2, flip_idx,
                     )
-                    piece_idx1, piece_idx2, edge_idx1, edge_idx2, flip_idx, dist
                     if dist < best_dist:
                         best_dist = dist
                         best_edge_idx1 = edge_idx1
@@ -123,7 +120,8 @@ class JigsawPuzzleSolver(object):
                 continue
 
             best_dist, _, _, _ = self.get_best_params(
-                piece_idx1=piece_idx1, piece_idx2=piece_idx2)
+                piece_idx1=piece_idx1, piece_idx2=piece_idx2,
+            )
             pair_dist[(piece_idx1, piece_idx2)] = best_dist
 
         pair_dist = sorted(pair_dist.items(), key=lambda x: x[1])
@@ -175,20 +173,27 @@ class JigsawPuzzleSolver(object):
         else:
             self.coord[1] -= 1
 
-    def modify_pieces1(self, piece_idx2, edge_idx1, edge_idx2, flip_idx):
-        """
-        `self.idx_arr`를 초기화할 때 배치할 두 조각들에 적당한 이미지 변환을 적용합니다.
-        """
-        if edge_idx2 in [1, 3]:
+    def transform_piece(self, piece_idx2, edge_idx1, edge_idx2, flip_idx):
+        if edge_idx2 - edge_idx1 in [1, -3]:
+            self.pieces[piece_idx2] = rotate(self.pieces[piece_idx2])
+            if edge_idx1 in [0, 2]:
+                flip_idx = 0 if flip_idx == 1 else 1
+        elif edge_idx2 - edge_idx1 in [-1, 3]:
+            self.pieces[piece_idx2] = rotate(rotate(rotate(self.pieces[piece_idx2])))
+            if edge_idx1 in [1, 3]:
+                flip_idx = 0 if flip_idx == 1 else 1
+        elif edge_idx2 in [1, 3]:
             if edge_idx2 == edge_idx1:
                 self.pieces[piece_idx2] = hflip(self.pieces[piece_idx2])
-            if flip_idx == 1:
-                self.pieces[piece_idx2] = vflip(self.pieces[piece_idx2])
         else:
             if edge_idx2 == edge_idx1:
                 self.pieces[piece_idx2] = vflip(self.pieces[piece_idx2])
-            if flip_idx == 1:
+
+        if flip_idx == 1:
+            if edge_idx1 in [0, 2]:
                 self.pieces[piece_idx2] = hflip(self.pieces[piece_idx2])
+            else:
+                self.pieces[piece_idx2] = vflip(self.pieces[piece_idx2])
 
     def init_index_array(self, pairs, M, N):
         """
@@ -198,40 +203,17 @@ class JigsawPuzzleSolver(object):
         self.coord = [int(M * self.margin // 2), int(N * self.margin // 2)]
 
         piece_idx1, piece_idx2 = pairs[0]
-        _, best_edge_idx1, best_edge_idx2, best_flip_idx = self.get_best_params(piece_idx1, piece_idx2)
+        _, best_edge_idx1, best_edge_idx2, best_flip_idx = self.get_best_params(
+            piece_idx1=piece_idx1, piece_idx2=piece_idx2,
+        )
 
         self.fill_index_arr(piece_idx1)
         self.change_coord(best_edge_idx1)
         self.fill_index_arr(piece_idx2)
 
-        self.modify_pieces1(piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
-
-    def modify_pieces2(self, piece_idx1, piece_idx2, edge_idx1, edge_idx2, flip_idx):
-        """
-        배치할 두 조각들에 적당한 이미지 변환을 적용합니다.
-        """
-        if piece_idx1 in self.idx_arr and piece_idx2 in self.idx_arr:
-            return
-        
-        if piece_idx1 in self.idx_arr:
-            trg_piece_idx = piece_idx2
-            trg_edge_idx = edge_idx2
-        elif piece_idx2 in self.idx_arr:
-            trg_piece_idx = piece_idx1
-            trg_edge_idx = edge_idx1
-        else:
-            return
-
-        if trg_edge_idx in [1, 3]:
-            if edge_idx2 == edge_idx1:
-                self.pieces[trg_piece_idx] = hflip(self.pieces[trg_piece_idx])
-            if flip_idx == 1:
-                self.pieces[trg_piece_idx] = vflip(self.pieces[trg_piece_idx])
-        else:
-            if edge_idx2 == edge_idx1:
-                self.pieces[trg_piece_idx] = vflip(self.pieces[trg_piece_idx])
-            if flip_idx == 1:
-                self.pieces[trg_piece_idx] = hflip(self.pieces[trg_piece_idx])
+        self.transform_piece(
+            piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx,
+        )
 
     def check_termination_flag(self, M, N):
         """
@@ -249,18 +231,19 @@ class JigsawPuzzleSolver(object):
                 break
 
             piece_idx1, piece_idx2 = pairs[pair_idx]
-            _, best_edge_idx1, best_edge_idx2, best_flip_idx = self.get_best_params(piece_idx1, piece_idx2)
-
+            _, best_edge_idx1, best_edge_idx2, best_flip_idx = self.get_best_params(
+                piece_idx1=piece_idx1, piece_idx2=piece_idx2,
+            )
             coord1 = self.get_coord_of_idx(piece_idx1)
             coord2 = self.get_coord_of_idx(piece_idx2)
             if coord1:
                 self.coord = coord1
-                self.modify_pieces2(piece_idx1, piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+                self.transform_piece(piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
                 self.change_coord(best_edge_idx1)
                 self.fill_index_arr(piece_idx2)
             elif coord2:
                 self.coord = deepcopy(coord2)
-                self.modify_pieces2(piece_idx1, piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
+                self.transform_piece(piece_idx1, best_edge_idx2, best_edge_idx1, best_flip_idx)
                 self.change_coord(best_edge_idx2)
                 self.fill_index_arr(piece_idx1)
             pair_idx += 1
