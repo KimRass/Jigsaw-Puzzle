@@ -11,17 +11,8 @@ python3 make.py\
 ```
 - `M`, `N`은 자연수로서 크기에 제한은 없습니다.
 ## 2) Solving Jigsaw Puzzle
-- 조각들이 정사각형일 경우
     ```bash
-    python3 solve_square.py\
-        --input_dir="./test/made"\
-        --M=8\
-        --N=8\
-        --save_path="./test/solved.png"\
-    ```
-- 조각들이 직사각형일 경우
-    ```bash
-    python3 solve_rect.py\
+    python3 solve.py\
         --input_dir="./test/made"\
         --M=8\
         --N=8\

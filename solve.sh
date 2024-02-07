@@ -1,4 +1,4 @@
-python3 solve_square.py\
+python3 solve.py\
     --input_dir="./test/made"\
     --M=4\
     --N=4\

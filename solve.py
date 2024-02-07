@@ -8,6 +8,7 @@ import time
 from datetime import timedelta
 
 from utils import load_pieces, hflip, vflip, rotate, save_image
+from utils import show_image
 
 
 def get_args(to_upperse=True):
@@ -236,12 +237,12 @@ class JigsawPuzzleSolver(object):
             )
             coord1 = self.get_coord_of_idx(piece_idx1)
             coord2 = self.get_coord_of_idx(piece_idx2)
-            if coord1:
+            if coord1 and not coord2:
                 self.coord = coord1
                 self.transform_piece(piece_idx2, best_edge_idx1, best_edge_idx2, best_flip_idx)
                 self.change_coord(best_edge_idx1)
                 self.fill_index_arr(piece_idx2)
-            elif coord2:
+            elif coord2 and not coord1:
                 self.coord = deepcopy(coord2)
                 self.transform_piece(piece_idx1, best_edge_idx2, best_edge_idx1, best_flip_idx)
                 self.change_coord(best_edge_idx2)
